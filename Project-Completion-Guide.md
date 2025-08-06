@@ -28,11 +28,11 @@ Multi-task learning approaches yield the best results, jointly training for aest
 Begin with a structured project layout separating models, preprocessing, API endpoints, and utilities. Create a virtual environment and install essential dependencies including OpenCV 4.x for computer vision operations, PyTorch for deep learning flexibility, TensorFlow for production deployment, and scikit-image for advanced image processing algorithms.
 
 ```bash
-# Environment setup
-python -m venv composition_env
-source composition_env/bin/activate
-pip install opencv-python==4.8.1 torch torchvision tensorflow==2.15.0
-pip install flask fastapi scikit-image pillow mlflow wandb
+# Environment setup (For Anaconda)
+conda create -n assistant python=3.13.5
+conda activate assistant
+cd Comp_Assistant
+pip install -r requirements.txt
 ```
 
 ### Data preprocessing pipeline development
