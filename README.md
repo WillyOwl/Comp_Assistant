@@ -52,8 +52,8 @@ git clone https://github.com/yourusername/Comp_Assistant.git
 cd Comp_Assistant
 
 # Create and activate virtual environment
-python3 -m venv composition_env
-source composition_env/bin/activate
+conda create -n assistant python=3.13.5
+conda activate assistant
 
 # Install dependencies
 pip install -r requirements.txt
