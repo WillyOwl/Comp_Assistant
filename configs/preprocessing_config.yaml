@@ -1,0 +1,62 @@
+# Preprocessing Configuration for AI Composition Assistant
+# Stage One: Image acquisition and preprocessing settings
+
+preprocessing:
+  # Image dimensions
+  target_size: [224, 224]  # [width, height] for model input
+  preserve_aspect_ratio: true
+  
+  # Image enhancement
+  noise_reduction: true
+  edge_enhancement: false
+  contrast_enhancement: false
+  
+  # Color processing
+  default_color_space: "RGB"
+  supported_formats: ["jpg", "jpeg", "png", "bmp", "tiff", "webp"]
+  
+  # Normalization settings
+  normalization:
+    method: "standard"  # Options: standard, minmax, pytorch
+    pixel_range: [0.0, 1.0]
+    
+  # Feature extraction
+  features:
+    extract_edges: true
+    extract_corners: true
+    extract_lines: true
+    extract_contours: true
+    
+    # Edge detection parameters
+    canny_threshold1: 50
+    canny_threshold2: 150
+    canny_aperture: 3
+    
+    # Line detection parameters
+    hough_threshold: 50
+    hough_min_line_length: 30
+    hough_max_line_gap: 10
+    
+    # Corner detection parameters
+    corner_max_corners: 100
+    corner_quality_level: 0.01
+    corner_min_distance: 10
+
+# Batch processing settings
+batch:
+  max_batch_size: 32
+  parallel_workers: 4
+  memory_limit_mb: 2048
+  
+# Performance optimization
+optimization:
+  use_gpu: false  # Enable when CUDA is available
+  interpolation_method: "LANCZOS4"  # LANCZOS4, CUBIC, LINEAR
+  cache_preprocessed: false
+  
+# Validation and quality control
+validation:
+  min_image_size: [32, 32]
+  max_image_size: [4096, 4096]
+  max_file_size_mb: 50
+  check_image_integrity: true
