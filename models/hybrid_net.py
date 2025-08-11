@@ -65,7 +65,7 @@ class HybridCompositionNet(nn.Module):
         num_patches = patch_output_size ** 2
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, hidden_size))
         
-        # Transformer encoder
+        # Transformer encoder (named as vit for compatibility with tests)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=hidden_size,
             nhead=num_attention_heads,
@@ -74,7 +74,7 @@ class HybridCompositionNet(nn.Module):
             activation='gelu',
             batch_first=True
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_hidden_layers)
+        self.vit = nn.TransformerEncoder(encoder_layer, num_layers=num_hidden_layers)
         
         # Task-specific heads
         self.rule_of_thirds_head = CompositionHead(hidden_size, 'rule_of_thirds')
@@ -110,7 +110,7 @@ class HybridCompositionNet(nn.Module):
         patches = patches + self.pos_embed[:, :H*W]
         
         # Pass through transformer
-        transformer_output = self.transformer(patches)  # Shape: [B, N, hidden_size]
+        transformer_output = self.vit(patches)  # Shape: [B, N, hidden_size]
         
         # Task-specific predictions
         return {
@@ -224,14 +224,21 @@ class CompositionHead(nn.Module):
         Forward pass through the composition head.
         
         Args:
-            x: Input features of shape (batch_size, seq_len, hidden_dim)
+            x: Input features of shape (batch_size, seq_len, hidden_dim) or (batch_size, hidden_dim)
             
         Returns:
             torch.Tensor: Task-specific predictions
         """
-        # Global average pooling over sequence dimension
-        x = x.transpose(1, 2)  # (batch_size, hidden_dim, seq_len)
-        x = self.pool(x).squeeze(-1)  # (batch_size, hidden_dim)
+        # Handle both 2D and 3D input tensors
+        if len(x.shape) == 2:
+            # Input is (batch_size, hidden_dim), skip pooling
+            pass
+        elif len(x.shape) == 3:
+            # Input is (batch_size, seq_len, hidden_dim), apply pooling
+            x = x.transpose(1, 2)  # (batch_size, hidden_dim, seq_len)
+            x = self.pool(x).squeeze(-1)  # (batch_size, hidden_dim)
+        else:
+            raise ValueError(f"Expected input tensor with 2 or 3 dimensions, got {len(x.shape)}")
         
         # MLP processing
         features = self.mlp(x)

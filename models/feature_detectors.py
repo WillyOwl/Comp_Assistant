@@ -102,7 +102,7 @@ class RuleOfThirdsDetector:
         return {
             'points': grid_points,
             'scores': scores.tolist(),
-            'saliency_map': saliency.cpu().numpy()
+            'saliency_map': saliency.squeeze().cpu().numpy()
         }
 
 
@@ -185,7 +185,7 @@ class LeadingLinesDetector:
             # Combine metrics for final score
             score = strength * length / (image.shape[0] * image.shape[1])
             
-            refined_lines.append([x1, y1, x2, y2])
+            refined_lines.append([int(x1), int(y1), int(x2), int(y2)])
             scores.append(float(score))
         
         # Find vanishing points
@@ -273,15 +273,30 @@ class SymmetryDetector:
         else:
             gray = image
             
+        # Ensure image has proper data type
+        if gray.dtype != np.uint8:
+            gray = gray.astype(np.uint8)
+            
         # Extract SIFT features
         keypoints, descriptors = self.sift.detectAndCompute(gray, None)
         
         if descriptors is None or len(descriptors) < 2:
+            # Use only pixel-based symmetry when SIFT fails
+            h_score = self._compute_pixel_symmetry(gray, 'horizontal')
+            v_score = self._compute_pixel_symmetry(gray, 'vertical')
+            r_score = self._compute_radial_symmetry(gray, (gray.shape[1]//2, gray.shape[0]//2))
+            
+            scores = {'horizontal': h_score, 'vertical': v_score, 'radial': r_score}
+            if max(scores.values()) > 0:
+                dominant_type = max(scores, key=scores.get)
+            else:
+                dominant_type = 'horizontal'
+                
             return {
-                'horizontal_score': 0.0,
-                'vertical_score': 0.0,
-                'radial_score': 0.0,
-                'dominant_type': None
+                'horizontal_score': float(h_score),
+                'vertical_score': float(v_score),
+                'radial_score': float(r_score),
+                'dominant_type': dominant_type
             }
         
         # Check horizontal symmetry
@@ -291,6 +306,12 @@ class SymmetryDetector:
         # Check vertical symmetry
         flipped_v = np.flipud(gray)
         v_score = self._compute_symmetry_score(gray, flipped_v, keypoints, descriptors)
+        
+        # Add fallback pixel-based symmetry if SIFT fails
+        if h_score == 0.0:
+            h_score = self._compute_pixel_symmetry(gray, 'horizontal')
+        if v_score == 0.0:
+            v_score = self._compute_pixel_symmetry(gray, 'vertical')
         
         # Check radial symmetry
         center = (gray.shape[1]//2, gray.shape[0]//2)
@@ -305,7 +326,10 @@ class SymmetryDetector:
         
         # Determine dominant symmetry type
         scores = {'horizontal': h_score, 'vertical': v_score, 'radial': r_score}
-        dominant_type = max(scores, key=scores.get)
+        if max(scores.values()) > 0:
+            dominant_type = max(scores, key=scores.get)
+        else:
+            dominant_type = 'horizontal'  # Default fallback
         
         return {
             'horizontal_score': float(h_score),
@@ -344,6 +368,22 @@ class SymmetryDetector:
             match_distances.append(dist)
         
         return 1.0 / (1.0 + np.mean(match_distances))
+    
+    def _compute_pixel_symmetry(self, image, symmetry_type):
+        """
+        Compute symmetry score using pixel-based comparison.
+        """
+        if symmetry_type == 'horizontal':
+            flipped = np.fliplr(image)
+        elif symmetry_type == 'vertical':
+            flipped = np.flipud(image)
+        else:
+            return 0.0
+        
+        # Compute normalized cross-correlation
+        diff = np.abs(image.astype(float) - flipped.astype(float))
+        score = 1.0 - (np.mean(diff) / 255.0)
+        return max(0.0, score)
     
     def _compute_radial_symmetry(self, image, center):
         """
