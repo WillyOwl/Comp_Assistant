@@ -18,7 +18,7 @@ import tempfile
 import matplotlib.pyplot as plt
 
 # Add the project root to the path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.hybrid_net import HybridCompositionNet
 from models.feature_detectors import (
