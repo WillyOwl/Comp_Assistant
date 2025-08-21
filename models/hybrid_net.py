@@ -246,10 +246,10 @@ class CompositionHead(nn.Module):
         
         # Task-specific output processing
         if self.task_type == 'rule_of_thirds':
-            return torch.sigmoid(output)  # Confidence scores
+            return output.float()  # Raw logits for BCEWithLogitsLoss
         elif self.task_type == 'leading_lines':
-            return torch.sigmoid(output)  # Normalized coordinates and confidence
+            return torch.sigmoid(output).float()  # Normalized coordinates and confidence
         elif self.task_type == 'symmetry':
-            return torch.softmax(output, dim=-1)  # Probability distribution
+            return torch.softmax(output, dim=-1).float()  # Probability distribution
         elif self.task_type == 'depth':
-            return torch.relu(output)  # Non-negative depth values
+            return torch.relu(output).float()  # Non-negative depth values
