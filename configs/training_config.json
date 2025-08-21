@@ -1,0 +1,136 @@
+{
+  "experiment_name": "composition_analysis_training",
+  "run_name": "hybrid_cnn_vit_v1",
+  "output_dir": "./training_outputs",
+  "seed": 42,
+  
+  "data": {
+    "train_data_dir": "./datasets/synthetic_cadb/train",
+    "val_data_dir": "./datasets/synthetic_cadb/val",
+    "test_data_dir": "./datasets/synthetic_cadb/test",
+    "train_annotations": "./datasets/synthetic_cadb/annotations/train.csv",
+    "val_annotations": "./datasets/synthetic_cadb/annotations/val.csv",
+    "test_annotations": "./datasets/synthetic_cadb/annotations/test.csv",
+    "dataset_type": "synthetic",
+    "target_size": [224, 224],
+    "num_workers": 4,
+    "color_jitter_strength": 0.2,
+    "rotation_degrees": 5
+  },
+  
+  "model": {
+    "img_size": 224,
+    "patch_size": 16,
+    "num_channels": 3,
+    "hidden_size": 384,
+    "num_attention_heads": 6,
+    "num_hidden_layers": 6,
+    "backbone": "resnet50",
+    "dropout": 0.1,
+    "pretrained_path": null
+  },
+  
+  "training": {
+    "epochs": 5,
+    "batch_size": 4,
+    "gradient_accumulation_steps": 2,
+    "use_amp": true,
+    "max_grad_norm": 1.0,
+    "save_frequency": 2,
+    "validation_frequency": 1
+  },
+  
+  "optimizer": {
+    "type": "adamw",
+    "backbone_lr": 1e-5,
+    "head_lr": 1e-3,
+    "weight_decay": 1e-4,
+    "betas": [0.9, 0.999],
+    "eps": 1e-8
+  },
+  
+  "scheduler": {
+    "type": "cosine",
+    "min_lr": 1e-7,
+    "warmup_epochs": 5,
+    "warmup_start_lr": 1e-6
+  },
+  
+  "loss": {
+    "type": "multi_task",
+    "task_weights": {
+      "rule_of_thirds": 1.0,
+      "leading_lines": 1.0,
+      "symmetry": 1.0,
+      "depth": 1.0,
+      "overall_quality": 0.5
+    },
+    "uncertainty_weighting": true,
+    "use_focal_loss": false,
+    "focal_alpha": 1.0,
+    "focal_gamma": 2.0
+  },
+  
+  "augmentation": {
+    "use_advanced_augmentation": true,
+    "cutmix_prob": 0.1,
+    "cutmix_alpha": 1.0,
+    "mixup_prob": 0.1,
+    "mixup_alpha": 0.2,
+    "preserve_composition": true
+  },
+  
+  "transfer_learning": {
+    "use_clip_features": false,
+    "clip_model_name": "openai/clip-vit-base-patch32",
+    "freeze_backbone_epochs": 5,
+    "gradual_unfreezing": true
+  },
+  
+  "regularization": {
+    "label_smoothing": 0.1,
+    "weight_decay": 1e-4,
+    "dropout": 0.1,
+    "stochastic_depth": 0.1
+  },
+  
+  "early_stopping": {
+    "enabled": true,
+    "patience": 15,
+    "min_delta": 1e-4,
+    "monitor": "val_overall_score"
+  },
+  
+  "evaluation": {
+    "metrics": [
+      "accuracy", "precision", "recall", "f1",
+      "pearson_correlation", "spearman_correlation",
+      "professional_standards", "aesthetic_correlation"
+    ],
+    "save_predictions": true,
+    "generate_visualization": true
+  },
+  
+  "logging": {
+    "use_mlflow": true,
+    "mlflow_uri": "./mlruns",
+    "use_wandb": false,
+    "wandb_project": "composition-analysis",
+    "log_frequency": 100,
+    "save_model_frequency": 10
+  },
+  
+  "hardware": {
+    "device": "auto",
+    "num_gpus": 1,
+    "distributed": false,
+    "fp16": true,
+    "compile_model": false
+  },
+  
+  "reproducibility": {
+    "deterministic": true,
+    "benchmark": true,
+    "seed": 42
+  }
+}
