@@ -60,7 +60,7 @@ class CompositionTrainer:
         self.metrics = CompositionMetrics()
 
         # Mixed precision training
-        self.use_amp = config.get('use_amp', True)
+        self.use_amp = config.get('training', {}).get('use_amp', True)
         self.scaler = GradScaler() if self.use_amp else None
         
         # CLIP adapter for transfer learning
@@ -79,6 +79,10 @@ class CompositionTrainer:
         # Early stopping state
         self.epochs_without_improvement = 0
         self.best_epoch = 0
+        
+        # NaN detection and recovery
+        self.nan_count = 0
+        self.max_nan_tolerance = 10
         
         # Create output directories
         self.output_dir = Path(config['output_dir'])
@@ -348,18 +352,31 @@ class CompositionTrainer:
                     
                     # Check for NaN loss
                     if torch.isnan(loss):
-                        print(f"Warning: NaN loss detected at batch {batch_idx}, skipping...")
+                        self.nan_count += 1
+                        print(f"Warning: NaN loss detected at batch {batch_idx} (count: {self.nan_count})")
+                        
+                        if self.nan_count > self.max_nan_tolerance:
+                            raise RuntimeError(f"Too many NaN losses ({self.nan_count}), stopping training")
+                        
                         continue
+                    else:
+                        # Reset NaN count on successful batch
+                        if self.nan_count > 0:
+                            self.nan_count = max(0, self.nan_count - 1)
 
                 # Backward pass with scaling
-                self.scaler.scale(loss).backward()
-                
-                # Gradient clipping before step
-                self.scaler.unscale_(self.optimizer)
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.config['training']['max_grad_norm'])
-                
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+                if not torch.isnan(loss) and not torch.isinf(loss):
+                    self.scaler.scale(loss).backward()
+                    
+                    # Gradient clipping before step
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.config['training']['max_grad_norm'])
+                    
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                else:
+                    print(f"Skipping backward pass due to invalid loss: {loss}")
+                    continue
 
             else:
                 predictions = self.model(images)
@@ -368,8 +385,17 @@ class CompositionTrainer:
                 
                 # Check for NaN loss
                 if torch.isnan(loss):
-                    print(f"Warning: NaN loss detected at batch {batch_idx}, skipping...")
+                    self.nan_count += 1
+                    print(f"Warning: NaN loss detected at batch {batch_idx} (count: {self.nan_count})")
+                    
+                    if self.nan_count > self.max_nan_tolerance:
+                        raise RuntimeError(f"Too many NaN losses ({self.nan_count}), stopping training")
+                    
                     continue
+                else:
+                    # Reset NaN count on successful batch
+                    if self.nan_count > 0:
+                        self.nan_count = max(0, self.nan_count - 1)
 
                 loss.backward()
                 

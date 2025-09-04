@@ -317,23 +317,38 @@ class CompositionMultiTaskLoss(nn.Module):
         total_loss = torch.tensor(0.0, device=device, dtype=torch.float32)
 
         for task, loss in losses.items():
-            # Ensure loss is float32
+            # Ensure loss is float32 and check for NaN/inf
             loss = loss.float()
+            
+            # Skip NaN or infinite losses
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"Warning: Skipping {task} loss due to NaN/inf: {loss}")
+                continue
             
             if self.uncertainty_weighting and task in self.log_vars:
                 # Uncertainty-based weighting: L = sum_i (1/2σ²)L_i + log(σ²)
                 # Ensure tensors are on the same device and use float32
                 log_var = self.log_vars[task].to(device).float()
+                
+                # Clamp log_var to prevent extreme values
+                log_var = torch.clamp(log_var, min=-10, max=10)
                 precision = torch.exp(-log_var)
-                weighted_loss = (precision * loss + log_var).float()
+                
+                # Scale the loss to prevent explosion
+                weighted_loss = (0.5 * precision * loss + 0.5 * log_var).float()
 
             else:
-                # Manual weighting
+                # Manual weighting with scaling
                 weight = torch.tensor(self.task_weights.get(task, 1.0), 
                                     device=device, dtype=torch.float32)
                 weighted_loss = (weight * loss).float()
 
             total_loss = total_loss + weighted_loss
+            
+        # Final NaN check
+        if torch.isnan(total_loss) or torch.isinf(total_loss):
+            print("Warning: Total loss is NaN/inf, replacing with zero")
+            total_loss = torch.tensor(0.0, device=device, dtype=torch.float32)
             
         losses['total'] = total_loss
         return losses
