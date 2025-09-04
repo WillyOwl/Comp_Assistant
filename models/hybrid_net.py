@@ -82,6 +82,26 @@ class HybridCompositionNet(nn.Module):
         self.symmetry_head = CompositionHead(hidden_size, 'symmetry')
         self.depth_head = CompositionHead(hidden_size, 'depth')
         
+        # Initialize weights
+        self._init_weights()
+        
+    def _init_weights(self):
+        """Initialize weights with proper scaling to prevent exploding gradients."""
+        for module in self.modules():
+            if isinstance(module, nn.Linear):
+                # Xavier initialization for linear layers
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+            elif isinstance(module, nn.Conv2d):
+                # Kaiming initialization for conv layers
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                if module.bias is not None:
+                    nn.init.constant_(module.bias, 0)
+            elif isinstance(module, nn.Parameter):
+                # Small random initialization for parameters like positional embeddings
+                nn.init.normal_(module, 0.0, 0.02)
+        
     def forward(self, x):
         """
         Forward pass through the network.
