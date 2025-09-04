@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Composition Assistant - Willy Zuo</title>
+    <base href="/composition-assistant/">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1><i class="fas fa-camera"></i> AI Composition Assistant</h1>
+            <p class="subtitle">Advanced photography composition analysis powered by AI</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h3>Upload Your Photo</h3>
+                    <p>Drag and drop an image here, or click to select</p>
+                    <input type="file" id="imageInput" accept="image/*" hidden>
+                    <button class="upload-btn" onclick="document.getElementById('imageInput').click()">
+                        Select Image
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Image Preview Section -->
+        <section class="preview-section" id="previewSection" style="display: none;">
+            <div class="image-container">
+                <img id="previewImage" alt="Uploaded image preview">
+                <div class="image-overlay" id="imageOverlay">
+                    <!-- Rule of thirds grid will be overlaid here -->
+                </div>
+            </div>
+            <div class="preview-actions">
+                <button class="btn btn-primary" id="analyzeBtn">
+                    <i class="fas fa-search"></i> Analyze Composition
+                </button>
+                <button class="btn btn-secondary" onclick="resetUpload()">
+                    <i class="fas fa-upload"></i> Upload New Image
+                </button>
+            </div>
+        </section>
+
+        <!-- Loading Section -->
+        <section class="loading-section" id="loadingSection" style="display: none;">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Analyzing composition...</p>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <div class="results-header">
+                <h2><i class="fas fa-chart-line"></i> Composition Analysis Results</h2>
+                <div class="overall-score" id="overallScore">
+                    <span class="score-label">Overall Score</span>
+                    <span class="score-value" id="scoreValue">0.0</span>
+                </div>
+            </div>
+
+            <div class="results-grid">
+                <!-- Rule Scores -->
+                <div class="result-card">
+                    <h3><i class="fas fa-th"></i> Rule Scores</h3>
+                    <div class="rule-scores" id="ruleScores">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Quality Metrics -->
+                <div class="result-card">
+                    <h3><i class="fas fa-medal"></i> Quality Metrics</h3>
+                    <div class="quality-metrics" id="qualityMetrics">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Suggestions -->
+                <div class="result-card suggestions-card">
+                    <h3><i class="fas fa-lightbulb"></i> Improvement Suggestions</h3>
+                    <div class="suggestions-list" id="suggestionsList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis -->
+            <div class="detailed-analysis" id="detailedAnalysis">
+                <h3><i class="fas fa-microscope"></i> Detailed Analysis</h3>
+                <div class="analysis-tabs">
+                    <button class="tab-btn active" onclick="showTab('ruleOfThirds')">Rule of Thirds</button>
+                    <button class="tab-btn" onclick="showTab('leadingLines')">Leading Lines</button>
+                    <button class="tab-btn" onclick="showTab('symmetry')">Symmetry</button>
+                    <button class="tab-btn" onclick="showTab('depth')">Depth & Layering</button>
+                    <button class="tab-btn" onclick="showTab('color')">Color Harmony</button>
+                </div>
+                
+                <div class="tab-content" id="tabContent">
+                    <!-- Tab content will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section class="error-section" id="errorSection" style="display: none;">
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Analysis Error</h3>
+                <p id="errorText">Something went wrong. Please try again.</p>
+                <button class="btn btn-primary" onclick="resetUpload()">Try Again</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Willy Zuo. AI Composition Assistant powered by advanced computer vision and machine learning.</p>
+            <div class="footer-links">
+                <a href="https://willyzuo.net" target="_blank">
+                    <i class="fas fa-home"></i> Main Website
+                </a>
+                <a href="https://github.com/yourusername/Comp_Assistant" target="_blank">
+                    <i class="fab fa-github"></i> Source Code
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Configuration Modal -->
+    <div class="modal" id="configModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> Analysis Configuration</h3>
+                <button class="close-btn" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="config-option">
+                    <label for="analysisDepth">Analysis Depth:</label>
+                    <select id="analysisDepth">
+                        <option value="basic">Basic</option>
+                        <option value="standard" selected>Standard</option>
+                        <option value="comprehensive">Comprehensive</option>
+                    </select>
+                </div>
+                <div class="config-option">
+                    <label for="maxSuggestions">Max Suggestions:</label>
+                    <input type="number" id="maxSuggestions" min="1" max="10" value="5">
+                </div>
+                <div class="config-option">
+                    <label>
+                        <input type="checkbox" id="includeTechnical" checked>
+                        Include Technical Metrics
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="applyConfig()">Apply</button>
+                <button class="btn btn-secondary" onclick="closeConfigModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
